@@ -139,8 +139,11 @@ def halaman_grafik(app):
     # batang beli vs jual
     k = app.kartu(.35, 0, .65, .62)
     k.judul("Beli vs jual per aset")
-    ks = sorted(set(beli) | set(jual))[:6]
-    mx = max([*beli.values(), *jual.values(), 1])
+    semua = sorted(set(beli) | set(jual), key=lambda a: -(beli[a] + jual[a]))  # terbesar dulu
+    ks = semua[:6]
+    mx = max([*(beli[a] for a in ks), *(jual[a] for a in ks), 1])
+    if len(semua) > 6:
+        k.teks(18, k.h - 24, f"+{len(semua) - 6} aset lainnya tidak ditampilkan", 9, False, "redup")
     k.teks(k.w - 18, 14, "■ beli", 9, True, PALET[0], "ne")
     k.teks(k.w - 18, 32, "■ jual", 9, True, PALET[1], "ne")
     baris, lebar = [], k.w - 170

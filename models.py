@@ -66,7 +66,7 @@ class Transaksi:
             jenis = row["Jenis"].strip().lower()
             if jenis not in ("beli", "jual"):
                 return None
-            jumlah, harga = float(row["Jumlah"]), float(row["Harga per Unit"])
+            jumlah, harga = parse_angka(row["Jumlah"]), parse_angka(row["Harga per Unit"])  # terima 1.000,5 maupun 1000.5
             if not (math.isfinite(jumlah) and math.isfinite(harga) and jumlah > 0 and harga > 0):
                 return None
             return cls(row["Tanggal"].strip(), row["Aset"].strip(), jenis, jumlah, harga)
@@ -109,11 +109,13 @@ class Penyimpanan:
 
     @staticmethod
     def simpan_harga(harga):
-        with open(FILE_HARGA, "w", newline="", encoding="utf-8") as f:
+        sementara = FILE_HARGA + ".tmp"  # tulis atomik agar file tidak rusak bila terhenti
+        with open(sementara, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(["Aset", "Harga"])
             for a, v in sorted(harga.items()):
                 w.writerow([a, v])
+        os.replace(sementara, FILE_HARGA)
 
     @staticmethod
     def simpan(t):
@@ -248,8 +250,10 @@ class Pengaturan:
     @staticmethod
     def simpan():
         try:
-            with open(FILE_SET, "w", encoding="utf-8") as f:
+            sementara = FILE_SET + ".tmp"
+            with open(sementara, "w", encoding="utf-8") as f:
                 json.dump(Pengaturan.s, f, indent=2, ensure_ascii=False)
+            os.replace(sementara, FILE_SET)
             return True
         except OSError:
             return False

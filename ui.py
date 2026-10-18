@@ -425,14 +425,15 @@ class Tabel:
     def gambar(s):
         c, t, f, tg = s.cv, s.t, s.k.app.f, (s.k.tag, s.tag)
         c.delete(s.tag)
-        c.create_polygon(rr(s.x, s.y, s.x + s.w, s.y + s.BH, 10), smooth=True, fill=campur(s.dasar, t["acc"], .12), outline="", tags=tg)
+        oy = s.k.dp + s.k.dh  # kartu mungkin sedang bergeser/terangkat: gambar ulang di posisi terkini
+        c.create_polygon(rr(s.x, (s.y + oy), s.x + s.w, (s.y + oy) + s.BH, 10), smooth=True, fill=campur(s.dasar, t["acc"], .12), outline="", tags=tg)
         x = s.x
         for j, fr, rata in s.kolom:
             lb = fr * s.w
-            c.create_text(x + (lb - 14 if rata == "e" else 14), s.y + s.BH / 2, text=j + s.tanda.get(j, ""), anchor=rata, fill=t["redup"], font=f(9, True), tags=tg)
+            c.create_text(x + (lb - 14 if rata == "e" else 14), (s.y + oy) + s.BH / 2, text=j + s.tanda.get(j, ""), anchor=rata, fill=t["redup"], font=f(9, True), tags=tg)
             x += lb
         for n in range(s.off, min(len(s.rows), s.tampil, s.off + s.lihat())):
-            y = s.y + s.BH + (n - s.off) * s.BR
+            y = (s.y + oy) + s.BH + (n - s.off) * s.BR
             lat = campur(s.dasar, t["acc"], .28) if n == s.pilih else campur(s.dasar, t["acc"], .12) if n == s.hov else campur(s.dasar, t["teks"], .035) if n % 2 else None
             if lat:
                 c.create_rectangle(s.x + 1, y, s.x + s.w - 1, y + s.BR, fill=lat, outline="", tags=tg)
@@ -445,7 +446,7 @@ class Tabel:
         if len(s.rows) > s.lihat():  # bilah gulir tipis
             tinggi, total = s.h - s.BH - 10, len(s.rows)
             jempol = max(24, tinggi * s.lihat() / total)
-            y0 = s.y + s.BH + 5 + (tinggi - jempol) * s.off / max(1, total - s.lihat())
+            y0 = (s.y + oy) + s.BH + 5 + (tinggi - jempol) * s.off / max(1, total - s.lihat())
             c.create_polygon(rr(s.x + s.w - 8, y0, s.x + s.w - 4, y0 + jempol, 2), smooth=True, fill=campur(s.dasar, t["acc"], .45), outline="", tags=tg)
 
 
@@ -884,9 +885,11 @@ class Jendela:
             ink.place(x=round(x - r), y=round(y - r), width=round(2 * r), height=round(2 * r))
 
         def ganti():
-            self.terapkan()
-            ink.tkraise()
-            animasi(ink, lambda f: pos(R * (1 - ease_out(f))), 420, selesai=lambda: (ink.destroy(), setattr(self, "_ink", False)))
+            try:
+                self.terapkan()
+            finally:  # walau galat, selimut tinta harus tetap menyusut dan hilang
+                ink.tkraise()
+                animasi(ink, lambda f: pos(R * (1 - ease_out(f))), 420, selesai=lambda: (ink.destroy(), setattr(self, "_ink", False)))
         animasi(ink, lambda f: pos(R * ease_out(f)), 420, selesai=ganti)
 
     def terapkan(self):
@@ -916,6 +919,8 @@ class Jendela:
         self.root.after(260, lambda: self.cari_cb and self.cari_cb())
 
     def cadangkan(self):
+        if not os.path.exists(FILE_CSV):
+            return self.toast("Belum ada data untuk dicadangkan", False)
         try:
             folder = os.path.join(os.path.dirname(FILE_CSV), "cadangan")
             os.makedirs(folder, exist_ok=True)
@@ -926,10 +931,15 @@ class Jendela:
         self.toast("Cadangan: " + os.path.basename(tujuan))
 
     def contoh(self):
-        for a in (("2026-01-05", "IDR", "beli", 50000000, 1), ("2026-01-12", "BTC", "beli", .15, 1500000000),
-                  ("2026-02-03", "ETH", "beli", 2.5, 45000000), ("2026-03-10", "BTC", "jual", .05, 1650000000),
-                  ("2026-04-02", "SOL", "beli", 30, 2800000)):
-            Penyimpanan.simpan(Transaksi(*a))
+        if Penyimpanan.muat():
+            return self.toast("Data sudah ada; contoh hanya untuk data kosong", False)
+        contoh = [Transaksi(*a) for a in (("2026-01-05", "IDR", "beli", 50000000, 1), ("2026-01-12", "BTC", "beli", .15, 1500000000),
+                                         ("2026-02-03", "ETH", "beli", 2.5, 45000000), ("2026-03-10", "BTC", "jual", .05, 1650000000),
+                                         ("2026-04-02", "SOL", "beli", 30, 2800000))]
+        try:
+            Penyimpanan.tulis_ulang(contoh)
+        except OSError as e:
+            return self.toast(f"Gagal menyimpan: {e}", False)
         self.toast("Data contoh ditambahkan")
         self.buka(0)
 
@@ -938,6 +948,8 @@ class Jendela:
         if self.tt:
             cv.delete(self.tt)
         tag = self.tt = f"toast{next(Kartu._n)}"
+        if len(teks) > 64:  # pesan galat panjang dipotong agar tidak keluar jendela
+            teks = teks[:61] + "..."
         lebar = max(190, len(teks) * 8 + 76)
         x0, y0 = W - lebar - 22, H - 74
         cv.create_polygon(rr(x0 + 2, y0 + 8, x0 + lebar + 2, y0 + 54, 20), smooth=True, fill=campur(Gaya.latar(), "#000000", .12), outline="", tags=tag)

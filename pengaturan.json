@@ -1,0 +1,29 @@
+{
+  "tema": "terang",
+  "aksen": "aurora",
+  "kaca": "normal",
+  "kaca_mode": "asli",
+  "orb": "tampil",
+  "font": "normal",
+  "anim": "normal",
+  "splash": "tampil",
+  "mata": "",
+  "format": "id",
+  "desimal": 4,
+  "awal": "Portofolio",
+  "konfirmasi": "ya",
+  "toast": 2600,
+  "jual": "tanya",
+  "keybind": {
+    "tab_portofolio": "<Control-Key-1>",
+    "tab_tambah": "<Control-Key-2>",
+    "tab_grafik": "<Control-Key-3>",
+    "tab_riwayat": "<Control-Key-4>",
+    "tab_pengaturan": "<Control-Key-5>",
+    "tab_pintasan": "<Control-Key-6>",
+    "tema": "<Control-Key-t>",
+    "cari": "<Control-Key-f>",
+    "cadang": "<Control-Key-b>",
+    "simpan": "<Control-Key-s>"
+  }
+}

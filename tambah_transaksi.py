@@ -6,7 +6,7 @@ from datetime import date
 from tkinter import messagebox
 
 from models import P, Penyimpanan, Transaksi, norm_tanggal, parse_angka, rp
-from ui import Gaya, Jendela
+from ui import Jendela
 
 
 def teks_angka(x):
@@ -75,7 +75,11 @@ def halaman_tambah(app):
         if not (math.isfinite(jumlah) and math.isfinite(harga) and jumlah > 0 and harga > 0):
             return app.toast("Jumlah dan harga harus lebih dari 0", False)
         lain = [x for i, x in enumerate(daftar) if i != app.edit]  # saldo tanpa transaksi yang sedang diubah
-        saldo = Penyimpanan.saldo(lain, aset)
+        if tgl > date.today().isoformat() and not messagebox.askyesno(
+                "Tanggal di masa depan", f"Tanggal {tgl} belum terjadi. Tetap simpan?"):
+            return
+        # saldo per tanggal transaksi: penjualan sebelum pembelian ikut terdeteksi
+        saldo = Penyimpanan.saldo([x for x in lain if (norm_tanggal(x.tanggal) or x.tanggal) <= tgl], aset)
         if jenis["v"] == "jual" and jumlah > saldo + 1e-9:
             if P["jual"] == "blok":
                 return app.toast("Penjualan melebihi saldo (diblokir di Pengaturan)", False)
